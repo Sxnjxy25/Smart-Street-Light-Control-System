@@ -469,30 +469,32 @@ body {
   justify-content: center;
 }
 
-/* Light Cone Projection */
+/* Light Cone Projection (Precisely Aligned to Lamp Fixture at calc(50% + 54px)) */
 .light-cone {
   position: absolute;
-  top: 85px;
-  left: 50%;
-  transform: translateX(20px);
-  width: 0;
-  height: 0;
-  border-left: 90px solid transparent;
-  border-right: 90px solid transparent;
-  border-bottom: 230px solid rgba(255, 255, 255, 0);
-  filter: blur(12px);
+  top: 128px;
+  left: calc(50% + 54px);
+  transform: translateX(-50%);
+  width: 210px;
+  height: 236px;
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  opacity: 0;
+  filter: blur(8px);
   pointer-events: none;
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease;
   z-index: 2;
 }
 
 .light-cone.dim {
-  border-bottom: 230px solid rgba(251, 191, 36, 0.18); /* Amber 20% Standby */
+  opacity: 1;
+  background: linear-gradient(to bottom, rgba(251, 191, 36, 0.55) 0%, rgba(251, 191, 36, 0.18) 55%, rgba(251, 191, 36, 0.02) 95%, transparent 100%);
+  filter: blur(8px);
 }
 
 .light-cone.full {
-  border-bottom: 230px solid rgba(255, 255, 255, 0.65); /* 100% Full Xenon */
-  filter: blur(14px);
+  opacity: 1;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.35) 50%, rgba(255, 255, 255, 0.04) 95%, transparent 100%);
+  filter: blur(10px);
 }
 
 .streetlight-svg {
@@ -526,23 +528,23 @@ body {
   opacity: 0.6;
 }
 
-/* Pedestrian Avatar */
+/* Pedestrian Avatar (Directly beneath streetlight beam) */
 .pedestrian-avatar {
   position: absolute;
   bottom: 35px;
-  left: 30%;
+  left: calc(50% + 40px);
   font-size: 2.2rem;
   color: #38bdf8;
   z-index: 6;
   opacity: 0;
-  transform: scale(0.6) translateY(20px);
+  transform: translateX(-50%) scale(0.6) translateY(20px);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8));
 }
 
 .pedestrian-avatar.visible {
   opacity: 1;
-  transform: scale(1) translateY(0);
+  transform: translateX(-50%) scale(1) translateY(0);
 }
 
 /* Digital Twin HUD Overlay */
