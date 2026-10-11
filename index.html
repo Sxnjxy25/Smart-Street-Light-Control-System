@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Streetlight IoT Telemetry Dashboard | ThingSpeak & Wokwi</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation / Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-icon">
+        <i class="fa-solid fa-lightbulb"></i>
+      </div>
+      <div>
+        <div class="brand-title">
+          <span>LUMINA</span> IOT
+          <span class="badge-tag">Smart Streetlight 2.0</span>
+        </div>
+        <div class="brand-subtitle">Sensor & Instrumentation System (25EE256) • Wokwi & ThingSpeak</div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="connection-status-pill" id="connStatusPill">
+        <span class="status-dot pulsing"></span>
+        <span id="connStatusText">ThingSpeak Sync: Active</span>
+        <span class="refresh-timer" id="refreshTimer" title="Time to next auto-refresh">15s</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button class="btn btn-outline" id="btnToggleSimMode" title="Toggle Demo Simulator">
+        <i class="fa-solid fa-sliders"></i>
+        <span id="simModeText">Simulation: OFF</span>
+      </button>
+
+      <button class="btn btn-primary" id="btnOpenConfig">
+        <i class="fa-solid fa-gear"></i>
+        <span>Configure API</span>
+      </button>
+
+      <a href="https://wokwi.com/projects/476159903212574721" target="_blank" class="btn btn-wokwi" title="Open Wokwi Project">
+        <i class="fa-solid fa-microchip"></i>
+        <span>Wokwi Sim</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="dashboard-container">
+    
+    <!-- Top Summary Banner -->
+    <section class="banner-summary">
+      <div class="summary-card">
+        <div class="summary-icon bg-amber">
+          <i class="fa-solid fa-sun"></i>
+        </div>
+        <div class="summary-details">
+          <span class="summary-label">Ambient Environment</span>
+          <h3 id="topAmbientState" class="summary-value">Daytime (Bright)</h3>
+          <span class="summary-sub" id="topLdrSub">Raw ADC: 780 • Lux: 76%</span>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon bg-cyan">
+          <i class="fa-solid fa-person-walking"></i>
+        </div>
+        <div class="summary-details">
+          <span class="summary-label">Motion Occupancy</span>
+          <h3 id="topMotionState" class="summary-value">Idle / Clear</h3>
+          <span class="summary-sub" id="topMotionSub">PIR: Digital LOW</span>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon bg-purple">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <div class="summary-details">
+          <span class="summary-label">Light Operating State</span>
+          <h3 id="topLampState" class="summary-value">OFF (0% PWM)</h3>
+          <span class="summary-sub" id="topPwmSub">PWM: 0/255 • 0.0W</span>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon bg-emerald">
+          <i class="fa-solid fa-leaf"></i>
+        </div>
+        <div class="summary-details">
+          <span class="summary-label">Energy Savings Today</span>
+          <h3 id="topSavingsPercent" class="summary-value">68.4% Saved</h3>
+          <span class="summary-sub" id="topPowerSub">Vs static 100W streetlight</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Center Grid: Digital Twin + Live Gauges -->
+    <div class="dashboard-grid">
+
+      <!-- LEFT: Streetlight 3D Digital Twin Visualizer -->
+      <section class="card digital-twin-card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-vr-cardboard"></i>
+            <span>Streetlight Digital Twin</span>
+          </div>
+          <div class="twin-badges">
+            <span class="badge" id="lampModeBadge">DAY MODE: OFF</span>
+          </div>
+        </div>
+
+        <div class="twin-viewport" id="twinViewport">
+          <!-- Sky / Environment Backdrop -->
+          <div class="sky-backdrop" id="skyBackdrop">
+            <div class="celestial-body" id="celestialBody"></div>
+            <div class="stars-layer" id="starsLayer"></div>
+            <div class="clouds-layer" id="cloudsLayer"></div>
+          </div>
+
+          <!-- Street & Lamp SVG Scene -->
+          <div class="scene-stage">
+            <div class="light-cone" id="lightCone"></div>
+
+            <!-- Streetlight Pole & Luminaire -->
+            <svg class="streetlight-svg" viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg">
+              <!-- Base Plate -->
+              <rect x="70" y="300" width="60" height="12" rx="3" fill="#334155" />
+              <rect x="80" y="295" width="40" height="6" rx="2" fill="#475569" />
+              <!-- Pole -->
+              <path d="M96 295 L96 60 L104 60 L104 295 Z" fill="#64748b" />
+              <!-- Arm Arch -->
+              <path d="M100 60 C100 20, 150 15, 160 40" fill="none" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+              <!-- Lamp Fixture -->
+              <path d="M145 40 L175 40 L168 55 L152 55 Z" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+              <!-- LED Emitter Element -->
+              <ellipse id="svgLedBulb" cx="160" cy="53" rx="8" ry="3" fill="#94a3b8" />
+            </svg>
+
+            <!-- Ground & Road -->
+            <div class="road-surface">
+              <div class="road-stripe"></div>
+            </div>
+
+            <!-- Animated Pedestrian / Vehicle on Motion -->
+            <div class="pedestrian-avatar" id="pedestrianAvatar">
+              <i class="fa-solid fa-person-walking"></i>
+            </div>
+          </div>
+
+          <!-- Live Digital Twin HUD Overlay -->
+          <div class="twin-hud">
+            <div class="hud-item">
+              <span class="hud-label">LDR Sensor (A0)</span>
+              <span class="hud-val" id="hudLdrVal">780</span>
+            </div>
+            <div class="hud-item">
+              <span class="hud-label">PIR Status (D2)</span>
+              <span class="hud-val" id="hudPirVal">LOW</span>
+            </div>
+            <div class="hud-item">
+              <span class="hud-label">PWM Output (D9)</span>
+              <span class="hud-val" id="hudPwmVal">0</span>
+            </div>
+            <div class="hud-item">
+              <span class="hud-label">Lamp Lumens</span>
+              <span class="hud-val" id="hudLumens">0 lm</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Interactive Control Bar (Simulation Mode) -->
+        <div class="sim-control-drawer" id="simControlDrawer">
+          <div class="drawer-header">
+            <span><i class="fa-solid fa-flask"></i> Interactive Sensor Simulator</span>
+            <small>Adjust sensors to test dashboard logic in real-time</small>
+          </div>
+          <div class="sim-controls-grid">
+            <div class="control-group">
+              <label for="sliderLdr">
+                <span>LDR Light Sensor (A0):</span>
+                <b id="sliderLdrVal">750 (Bright)</b>
+              </label>
+              <input type="range" id="sliderLdr" min="0" max="1023" value="750" class="custom-slider">
+              <div class="range-marks">
+                <span>0 (Dark Night)</span>
+                <span class="threshold-mark">Threshold (500)</span>
+                <span>1023 (Sunlight)</span>
+              </div>
+            </div>
+
+            <div class="control-group">
+              <label>Motion Trigger (PIR D2):</label>
+              <div class="pir-toggle-btns">
+                <button class="btn btn-sm btn-outline active" id="btnPirOff"><i class="fa-solid fa-person-shelter"></i> No Motion</button>
+                <button class="btn btn-sm btn-outline" id="btnPirOn"><i class="fa-solid fa-person-walking"></i> Detect Motion</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Real-Time Telemetry & Gauges -->
+      <section class="telemetry-column">
+        
+        <!-- Ambient Light Gauge Card -->
+        <div class="card telemetry-card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa-solid fa-gauge-high"></i>
+              <span>LDR Ambient Light Intensity</span>
+            </div>
+            <span class="chip" id="ldrConditionChip">Bright (Day)</span>
+          </div>
+          
+          <div class="gauge-box">
+            <div class="circular-progress" id="ldrProgress">
+              <div class="progress-value" id="ldrProgressVal">76%</div>
+            </div>
+            <div class="gauge-meta">
+              <div class="meta-row">
+                <span>Raw ADC Value:</span>
+                <strong id="ldrRawText">780 / 1023</strong>
+              </div>
+              <div class="meta-row">
+                <span>Lux Equivalent:</span>
+                <strong id="ldrLuxText">~650 Lux</strong>
+              </div>
+              <div class="meta-row">
+                <span>Night Threshold:</span>
+                <span class="tag-threshold">&lt; 500 ADC</span>
+              </div>
+              <div class="meta-row">
+                <span>Light Assessment:</span>
+                <strong id="ldrAssessmentText" class="text-amber">Sunlight Active</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PIR Motion Radar & Activity Card -->
+        <div class="card telemetry-card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa-solid fa-radar"></i>
+              <span>PIR Occupancy Radar</span>
+            </div>
+            <span class="chip" id="pirStatusChip">Clear</span>
+          </div>
+
+          <div class="radar-box">
+            <div class="radar-screen">
+              <div class="radar-sweep"></div>
+              <div class="radar-blip" id="radarBlip"></div>
+              <div class="radar-center-dot"></div>
+            </div>
+            <div class="radar-meta">
+              <div class="radar-stat">
+                <span class="stat-num" id="motionTriggerCount">0</span>
+                <span class="stat-title">Triggers Today</span>
+              </div>
+              <div class="radar-stat">
+                <span class="stat-num" id="lastMotionTime">Never</span>
+                <span class="stat-title">Last Detection</span>
+              </div>
+              <div class="radar-stat">
+                <span class="stat-num" id="activeHoldTime">0s</span>
+                <span class="stat-title">Active Hold Timer</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Power & Energy Optimization Card -->
+        <div class="card telemetry-card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa-solid fa-chart-pie"></i>
+              <span>Energy Conservation Analytics</span>
+            </div>
+          </div>
+
+          <div class="energy-metrics">
+            <div class="power-bar-wrapper">
+              <div class="power-bar-label">
+                <span>Current Power Draw: <b id="currentPowerWatts">0.0 W</b></span>
+                <span>Max: 100 W</span>
+              </div>
+              <div class="power-bar-track">
+                <div class="power-bar-fill" id="powerBarFill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <div class="savings-kpi-grid">
+              <div class="kpi-box">
+                <i class="fa-solid fa-battery-three-quarters text-emerald"></i>
+                <div>
+                  <div class="kpi-val" id="kpiKwhSaved">1.42 kWh</div>
+                  <div class="kpi-label">Energy Saved</div>
+                </div>
+              </div>
+
+              <div class="kpi-box">
+                <i class="fa-solid fa-tree text-emerald"></i>
+                <div>
+                  <div class="kpi-val" id="kpiCo2Saved">0.98 kg</div>
+                  <div class="kpi-label">CO2 Avoided</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+    <!-- Charts Section: Live History -->
+    <section class="card charts-card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Live Historical Telemetry (ThingSpeak Feed)</span>
+        </div>
+        <div class="chart-actions">
+          <button class="btn btn-sm btn-outline" id="btnRefreshFeeds">
+            <i class="fa-solid fa-rotate-right"></i> Refresh Now
+          </button>
+          <button class="btn btn-sm btn-outline" id="btnExportCsv">
+            <i class="fa-solid fa-file-csv"></i> Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-wrapper">
+          <div class="chart-subtitle"><i class="fa-solid fa-sun text-amber"></i> LDR Light Intensity & Threshold</div>
+          <div class="canvas-container">
+            <canvas id="lightChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-wrapper">
+          <div class="chart-subtitle"><i class="fa-solid fa-bolt text-purple"></i> Streetlight Brightness (PWM) & Motion</div>
+          <div class="canvas-container">
+            <canvas id="pwmChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Data Feeds Log Table -->
+    <section class="card feeds-card">
+      <div class="card-header">
+        <div class="card-title">
+          <i class="fa-solid fa-table-list"></i>
+          <span>Recent Feed Log Entries</span>
+        </div>
+        <span class="badge" id="feedCountBadge">0 Entries</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="feeds-table">
+          <thead>
+            <tr>
+              <th>Entry ID</th>
+              <th>Timestamp</th>
+              <th>LDR Raw (Field 1)</th>
+              <th>PIR Motion (Field 2)</th>
+              <th>Brightness PWM (Field 3)</th>
+              <th>Power Draw (Field 4)</th>
+              <th>System Mode (Field 5)</th>
+            </tr>
+          </thead>
+          <tbody id="feedsTableBody">
+            <tr>
+              <td colspan="7" class="text-center py-4">Waiting for ThingSpeak data stream...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Configuration Modal -->
+  <div class="modal-backdrop" id="configModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-sliders"></i> ThingSpeak Connection Settings</h3>
+        <button class="modal-close" id="btnCloseConfig">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">
+          Connect your live ThingSpeak Channel to stream readings from your Wokwi simulation.
+        </p>
+
+        <div class="form-group">
+          <label for="inputChannelId">ThingSpeak Channel ID:</label>
+          <input type="text" id="inputChannelId" class="form-control" placeholder="e.g., 2849102">
+          <small class="form-hint">Found under Channel Settings on ThingSpeak</small>
+        </div>
+
+        <div class="form-group">
+          <label for="inputReadKey">Read API Key:</label>
+          <input type="text" id="inputReadKey" class="form-control" placeholder="e.g., 8ABCDEF123456789">
+          <small class="form-hint">Found under API Keys tab (optional if public channel)</small>
+        </div>
+
+        <div class="form-group">
+          <label for="selectInterval">Auto-Refresh Interval:</label>
+          <select id="selectInterval" class="form-control">
+            <option value="15">15 Seconds (ThingSpeak Free Tier)</option>
+            <option value="30">30 Seconds</option>
+            <option value="60">60 Seconds</option>
+          </select>
+        </div>
+
+        <div class="thingspeak-field-guide">
+          <h4><i class="fa-solid fa-circle-info"></i> Channel Field Mapping Guide:</h4>
+          <ul>
+            <li><code>field1</code>: LDR Light Sensor Raw Value (0-1023 / 0-4095)</li>
+            <li><code>field2</code>: PIR Motion State (0 = None, 1 = Detected)</li>
+            <li><code>field3</code>: Streetlight Brightness PWM (0, 50, 255)</li>
+            <li><code>field4</code>: Power Consumption (Watts: 0W, 20W, 100W)</li>
+            <li><code>field5</code>: Mode Index (0 = Day, 1 = Standby, 2 = Motion Active)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="btnUseDemoData">Load Demo Channel</button>
+        <button class="btn btn-primary" id="btnSaveConfig">Save & Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
