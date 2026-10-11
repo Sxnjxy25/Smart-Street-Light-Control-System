@@ -597,27 +597,29 @@ function updateUI(data) {
   elements.ldrLuxText.textContent = `~${luxEst} Lux`;
 
   if (!isDark) {
-    elements.topAmbientState.textContent = 'Daytime (Bright)';
+    if (elements.topAmbientState) elements.topAmbientState.textContent = 'Daytime (Bright)';
     elements.ldrConditionChip.textContent = 'Bright (Day)';
     elements.ldrConditionChip.style.borderColor = 'var(--accent-amber)';
     elements.ldrConditionChip.style.color = 'var(--accent-amber)';
     elements.ldrAssessmentText.textContent = 'Sunlight Active (Light OFF)';
     elements.ldrAssessmentText.className = 'text-amber';
   } else {
-    elements.topAmbientState.textContent = 'Nighttime (Dark)';
+    if (elements.topAmbientState) elements.topAmbientState.textContent = 'Nighttime (Dark)';
     elements.ldrConditionChip.textContent = 'Night (Dark)';
     elements.ldrConditionChip.style.borderColor = 'var(--accent-cyan)';
     elements.ldrConditionChip.style.color = 'var(--accent-cyan)';
     elements.ldrAssessmentText.textContent = 'Illumination Required';
     elements.ldrAssessmentText.className = 'text-cyan';
   }
-  elements.topLdrSub.textContent = `Raw ADC: ${ldrRaw} • Lux: ${ldrPct}%`;
+  if (elements.topLdrSub) elements.topLdrSub.textContent = `Raw ADC: ${ldrRaw} • Lux: ${ldrPct}%`;
 
   // 2. Motion PIR UI
   if (motion === 1) {
-    elements.topMotionState.textContent = 'Motion Detected!';
-    elements.topMotionState.style.color = 'var(--accent-rose)';
-    elements.topMotionSub.textContent = 'Pedestrian / Vehicle Active';
+    if (elements.topMotionState) {
+      elements.topMotionState.textContent = 'Motion Detected!';
+      elements.topMotionState.style.color = 'var(--accent-rose)';
+    }
+    if (elements.topMotionSub) elements.topMotionSub.textContent = 'Pedestrian / Vehicle Active';
     elements.pirStatusChip.textContent = 'DETECTED';
     elements.pirStatusChip.style.background = 'rgba(244, 63, 94, 0.2)';
     elements.pirStatusChip.style.color = 'var(--accent-rose)';
@@ -628,9 +630,11 @@ function updateUI(data) {
     elements.motionTriggerCount.textContent = STATE.motionCount;
     elements.lastMotionTime.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   } else {
-    elements.topMotionState.textContent = 'Idle / Clear';
-    elements.topMotionState.style.color = 'var(--text-primary)';
-    elements.topMotionSub.textContent = 'PIR: Digital LOW';
+    if (elements.topMotionState) {
+      elements.topMotionState.textContent = 'Idle / Clear';
+      elements.topMotionState.style.color = 'var(--text-primary)';
+    }
+    if (elements.topMotionSub) elements.topMotionSub.textContent = 'PIR: Digital LOW';
     elements.pirStatusChip.textContent = 'Clear';
     elements.pirStatusChip.style.background = 'rgba(6, 182, 212, 0.15)';
     elements.pirStatusChip.style.color = 'var(--accent-cyan)';
@@ -644,8 +648,8 @@ function updateUI(data) {
   elements.hudPwmVal.textContent = pwm;
 
   if (pwm === PWM_OFF) {
-    elements.topLampState.textContent = 'OFF (0% PWM)';
-    elements.topPwmSub.textContent = `PWM: 0/255 • 0.0W`;
+    if (elements.topLampState) elements.topLampState.textContent = 'OFF (0% PWM)';
+    if (elements.topPwmSub) elements.topPwmSub.textContent = `PWM: 0/255 • 0.0W`;
     elements.lampModeBadge.textContent = 'DAY MODE: OFF';
     elements.lampModeBadge.style.color = '#94a3b8';
     elements.lightCone.className = 'light-cone';
@@ -653,8 +657,8 @@ function updateUI(data) {
     elements.hudLumens.textContent = '0 lm';
     elements.skyBackdrop.className = 'sky-backdrop'; // Bright blue sky
   } else if (pwm === PWM_DIM) {
-    elements.topLampState.textContent = 'STANDBY (20% Dim)';
-    elements.topPwmSub.textContent = `PWM: 50/255 • ~20.0W`;
+    if (elements.topLampState) elements.topLampState.textContent = 'STANDBY (20% Dim)';
+    if (elements.topPwmSub) elements.topPwmSub.textContent = `PWM: 50/255 • ~20.0W`;
     elements.lampModeBadge.textContent = 'NIGHT STANDBY (20%)';
     elements.lampModeBadge.style.color = 'var(--accent-amber)';
     elements.lightCone.className = 'light-cone dim';
@@ -662,8 +666,8 @@ function updateUI(data) {
     elements.hudLumens.textContent = '1,200 lm (Dim)';
     elements.skyBackdrop.className = 'sky-backdrop night'; // Night star sky
   } else {
-    elements.topLampState.textContent = 'ACTIVE (100% Full)';
-    elements.topPwmSub.textContent = `PWM: 255/255 • 100.0W`;
+    if (elements.topLampState) elements.topLampState.textContent = 'ACTIVE (100% Full)';
+    if (elements.topPwmSub) elements.topPwmSub.textContent = `PWM: 255/255 • 100.0W`;
     elements.lampModeBadge.textContent = 'MOTION ACTIVE (100%)';
     elements.lampModeBadge.style.color = 'var(--accent-cyan)';
     elements.lightCone.className = 'light-cone full';
@@ -678,7 +682,7 @@ function updateUI(data) {
 
   // Theoretical Savings vs Conventional Always-ON (100W for 12h night)
   const savingsPct = (100 - power).toFixed(1);
-  elements.topSavingsPercent.textContent = `${savingsPct}% Saved`;
+  if (elements.topSavingsPercent) elements.topSavingsPercent.textContent = `${savingsPct}% Saved`;
 }
 
 /**
